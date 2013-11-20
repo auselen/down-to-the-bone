@@ -10,6 +10,6 @@ _start:
 0:
     cmp     r0, r1
     strlt   r2, [r0], #4
-    blt     0
+    blt     0b
 
     b       main

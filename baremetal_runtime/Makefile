@@ -1,4 +1,4 @@
-CROSSCOMPILE ?= /home/auselen/bin/gcc-linaro-arm-linux-gnueabihf-4.8-2013.09_linux/bin/arm-linux-gnueabihf-
+CROSSCOMPILE ?= arm-linux-gnueabihf-
 
 CFLAGS = -mcpu=cortex-a8 -marm -Wall -O2 -nostdlib -nostartfiles -ffreestanding
 
