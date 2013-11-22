@@ -1,3 +1,5 @@
+#define NULL 0
+
 #define HW_REG_GET(addr) (*(volatile unsigned int *) (addr))
 #define HW_REG_GETB(addr) (*(volatile unsigned char *) (addr))
 #define HW_REG_SET(addr, val) (*(volatile unsigned int *) (addr) = (val))
@@ -27,6 +29,22 @@
 #define UART0_SYSC              0x44E09054
 #define UART0_SYSS              0x44E09058
 #define UART0_BASE              0x44E09000
+
+#define CONTROL_MODULE_BASE     0x44E10000
+#define CONTROL_STATUS          0x44E10040
+
+#define ROM_CODE_VERSION        0x0002BFFC
+
+int __aeabi_idiv(int num, int denum) {
+    int q = 0;
+
+    while (num > denum) {
+        num -= denum;
+        q++;
+    }
+
+   return q;
+}
 
 void leds_init() {
     HW_REG_SET(CM_PER_GPIO1_CLKCTRL, 0x40002);
@@ -81,9 +99,53 @@ void uart_init() {
 }
 
 void uart_putc(int c) {
+    if (c == '\n')
+        uart_putc('\r');
+
     while ((HW_REG_GETB(UART0_BASE + 20) & 32) == 0)
         ;
     HW_REG_SETB(UART0_BASE + 0, c);
+}
+
+void uart_putf(const char *fmt, ...) {
+    int *stack_head = __builtin_frame_address(0);
+    stack_head += 2; // skip fmt, skip stack_head
+
+    while (*fmt) {
+        if (*fmt == '%') {
+            fmt++;
+            switch (*fmt++) {
+                case 'c':
+                    uart_putc(*stack_head++);
+                    break;
+                case 's': {
+                    const char *s = (char *) *stack_head++;
+                    while (*s) {
+                        uart_putc(*s++);
+                    }
+                    break;
+                }
+                case 'x': {
+                    int num = *stack_head++;
+                    int shift = 28;
+                    while (shift >= 0) {
+                        int hd = (num >> shift) & 0xf;
+                        if (hd > 9)
+                            hd += 'A' - 10;
+                        else
+                            hd += '0';
+                        uart_putc(hd);
+                        shift -= 4;
+                    }
+                    break;
+                }
+                default:
+                    uart_putc('?');
+            }
+        } else {
+            uart_putc(*fmt++);
+        }
+    }
 }
 
 void sleep() {
@@ -92,16 +154,32 @@ void sleep() {
     while (*cur - start < 0x01000000) ;
 }
 
-void main(void *bootcfg) {
+typedef struct {
+    int reserved;
+    void *desc;
+    char device;
+    char reason;
+    char reserved2;
+} /* __attribute__((packed))*/ BootParams_t;
+
+BootParams_t Empty_params;
+
+const char *CRYSTAL_FREQS[] = {"19.2", "24", "25", "26"};
+
+void main(BootParams_t *bootcfg) {
     int i = 0;
     leds_init();
     timer_init();
     uart_init();
+    uart_putf("rom code version 0x%x\n", HW_REG_GET(ROM_CODE_VERSION));
+    uart_putf("control_status 0x%x\n", HW_REG_GET(CONTROL_STATUS));
+    uart_putf("crystal freq %s MHz\n", CRYSTAL_FREQS[(HW_REG_GET(CONTROL_STATUS) >> 22) & 0x3]);
+    uart_putf("bootcfg 0x%x\n desc  : 0x%x\n device: 0x%x\n reason: 0x%x\n", bootcfg,
+        bootcfg->desc, bootcfg->device, bootcfg->reason);
+    *bootcfg = Empty_params;
     while (1) {
-        leds_set(i);
-        uart_putc('a' + (i % ('z' - 'a')));
-        uart_putc('\n');
-        uart_putc('\r');
+        leds_set(1 << (i % 4));
+        uart_putc('a' + (i % ('z' - 'a')) /i);
         sleep();
         i++;
     }

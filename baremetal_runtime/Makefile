@@ -12,7 +12,7 @@ runtime.o : runtime.c
 
 runtime.bin : memmap startup.o runtime.o
 	$(CROSSCOMPILE)ld -o runtime -T memmap startup.o runtime.o
-	$(CROSSCOMPILE)objdump -D runtime > runtime.lst
+	$(CROSSCOMPILE)objdump -M reg-names-raw -D runtime > runtime.lst
 	$(CROSSCOMPILE)objcopy runtime runtime.bin -O binary
 
 clean :
