@@ -10,6 +10,18 @@ void leds_set(int mask) {
     HW_REG_SET(GPIO1_CLEARDATAOUT, (~mask & 0xf)<<21);
 }
 
+void rtc_init() {
+    HW_REG_SET(CM_RTC_CLKSTCTRL, 0x2);
+    leds_set(1);
+    HW_REG_SET(CM_RTC_RTC_CLKCTRL, 0x2);
+    leds_set(2);
+    HW_REG_SET(RTC_BASE + 0x6C, 0x83E70B13);
+    HW_REG_SET(RTC_BASE + 0x70, 0x95A4F1E0);
+    HW_REG_SET(RTC_BASE + 0x40, 0x1);
+
+    HW_REG_SET(RTC_BASE + 0x54, (1 << 3) | (1 << 6));
+}
+
 void uart_init() {
     /* set uart mux config */
     HW_REG_SET(CONF_UART0_RXD, (0x1<<4)|(0x1<<5));
@@ -87,14 +99,14 @@ void uart_putf(const char *fmt, ...) {
                 case 'd': {
                     int num = *stack_head++;
                     char buf[16];
-                    char *s = buf + (sizeof(buf) / sizeof(buf[0]));
+                    char *s = buf + (sizeof(buf) / sizeof(buf[0])) - 1;
                     char *e = s;
 
                     do {
                         *--s = '0' + num % 10;
                     } while (num /= 10);
 
-                    while (s <= e)
+                    while (s < e)
                         uart_putc(*s++);
 
                     break;

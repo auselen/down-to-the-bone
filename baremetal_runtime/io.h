@@ -13,6 +13,8 @@
 #define CM_PER_TIMER7_CLKCTRL   0x44E0007C
 #define CM_PER_L4HS_CLKSTCTRL   0x44E0011C
 #define CM_PER_UART0_CLKCTRL    0x44E0006C
+#define CM_RTC_RTC_CLKCTRL      0x44E00800
+#define CM_RTC_CLKSTCTRL        0x44E00804
 
 #define CM_WKUP_CLKSTCTRL       0x44E00400
 #define CM_WKUP_UART0_CLKCTRL   0x44E004B4
@@ -36,12 +38,16 @@
 
 #define ROM_CODE_VERSION        0x0002BFFC
 
+#define RTC_BASE                0x44E3E000
+
 void leds_init();
 void leds_set(int mask);
 
 void uart_init();
 void uart_putc(int c);
 void uart_putf(const char *fmt, ...);
+
+void rtc_init();
 
 #endif
 

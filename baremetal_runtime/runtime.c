@@ -32,6 +32,7 @@ void main(BootParams_t *bootcfg) {
     leds_init();
     timer_init();
     uart_init();
+    rtc_init();
     asm("MRC p15, 0, %[v], c0, c0, 0" : [v] "=r" (val));
     uart_putf("main id register %x\n", val);
     uart_putf("rom code version 0x%x\n", HW_REG_GET(ROM_CODE_VERSION));
@@ -42,7 +43,12 @@ void main(BootParams_t *bootcfg) {
     *bootcfg = Empty_params;
     while (1) {
         leds_set(1 << (i % 4));
-        uart_putc('a' + i % ('z' - 'a'));
+        int sec = HW_REG_GET(RTC_BASE);
+        int min = HW_REG_GET(RTC_BASE + 4);
+        int hour = HW_REG_GET(RTC_BASE + 8);
+        uart_putf("\rtime %d%d:%d%d:%d%d", (hour >> 4) & 0x3, hour & 0xF,
+            (min >> 4) & 0x7, min & 0xF,
+            (sec >> 4) & 0x7, sec & 0xF);
         sleep();
         i++;
     }
