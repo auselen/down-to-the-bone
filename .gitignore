@@ -2,3 +2,5 @@
 *.bin
 *.o
 *.swp
+*.su
+*.patch

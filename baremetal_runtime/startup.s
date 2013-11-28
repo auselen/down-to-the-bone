@@ -2,6 +2,13 @@
 _start:
     /* setup stack pointer */
     ldr sp, =0x4030CDFC
+    sub r1, sp, #64
+    mov r2, #0x01b @undef
+    mrs r3, cpsr
+    msr cpsr_cxsf, r2
+    mov sp, r1
+    msr cpsr_cxsf, r3
+
     mov r3, r0
     /* zero out bss */
     ldr     r0, =__bss_start__

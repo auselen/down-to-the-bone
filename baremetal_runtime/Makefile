@@ -1,6 +1,6 @@
 CROSSCOMPILE ?= arm-linux-gnueabihf-
 
-CFLAGS = -mcpu=cortex-a8 -marm -Wall -O2 -nostdlib -nostartfiles -ffreestanding
+CFLAGS = -mcpu=cortex-a8 -marm -Wall -O2 -nostdlib -nostartfiles -ffreestanding -fstack-usage -Wstack-usage=64
 
 all : runtime.bin
 
@@ -19,4 +19,4 @@ runtime.bin : memmap startup.o runtime.o io.o
 	$(CROSSCOMPILE)objcopy runtime runtime.bin -O binary
 
 clean :
-	-@rm *.o *.lst *.bin runtime 2>/dev/null || true
+	-@rm *.o *.lst *.bin *.su runtime 2>/dev/null || true
