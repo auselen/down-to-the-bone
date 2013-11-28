@@ -66,16 +66,21 @@ void main(BootParams_t *bootcfg) {
     *bootcfg = Empty_params;
     HW_REG_SET(0x4030CE24, (int) handler_undefined_entry);
     asm volatile(".word 0xf000f0e7");
+    uart_putf("rtc irq %x\n", rtc_getirq());
+    uart_putf("rtc status %x\n", rtc_status());
+    rtc_irq();
+    uart_putf("rtc irq %x\n", rtc_getirq());
+    uart_putf("rtc status %x\n", rtc_status());
     while (1) {
         leds_set(1 << (i++ % 4));
         int sec = HW_REG_GET(RTC_BASE);
         int min = HW_REG_GET(RTC_BASE + 4);
         int hour = HW_REG_GET(RTC_BASE + 8);
         asm("MRS %[v], CPSR" : [v] "=r" (val));
-        uart_putf("\rtime %d%d:%d%d:%d%d cpsr:%x", (hour >> 4) & 0x3, hour & 0xF,
+        uart_putf("\rtime %d%d:%d%d:%d%d cpsr:%x rtc_status:%x", (hour >> 4) & 0x3, hour & 0xF,
             (min >> 4) & 0x7, min & 0xF,
             (sec >> 4) & 0x7, sec & 0xF,
-            val);
+            val, rtc_status());
         sleep();
     }
 }

@@ -22,6 +22,22 @@ void rtc_init() {
     HW_REG_SET(RTC_BASE + 0x54, (1 << 3) | (1 << 6));
 }
 
+void rtc_irq() {
+    while (HW_REG_GET(RTC_BASE + 0x44) & 0x1)
+        /* wait while rtc is updating */ ;
+    /* interrupt every second */
+    HW_REG_SET(RTC_BASE + 0x48, 0x4);
+}
+
+int rtc_getirq() {
+    return HW_REG_GET(RTC_BASE + 0x48);
+}
+
+int rtc_status() {
+    return HW_REG_GET(RTC_BASE + 0x44);
+}
+
+
 void uart_init() {
     /* set uart mux config */
     HW_REG_SET(CONF_UART0_RXD, (0x1<<4)|(0x1<<5));

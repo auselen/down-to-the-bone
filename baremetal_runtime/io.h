@@ -40,6 +40,8 @@
 
 #define RTC_BASE                0x44E3E000
 
+#define INTC                    0x48200000
+
 void leds_init();
 void leds_set(int mask);
 
@@ -48,6 +50,11 @@ void uart_putc(int c);
 void uart_putf(const char *fmt, ...);
 
 void rtc_init();
+void rtc_irq();
+int rtc_getirq();
+int rtc_status();
+
+int intc_status();
 
 #endif
 
