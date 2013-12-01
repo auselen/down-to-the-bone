@@ -3,8 +3,8 @@
 
 #define HW_REG_GET(addr) (*(volatile unsigned int *) (addr))
 #define HW_REG_GETB(addr) (*(volatile unsigned char *) (addr))
-#define HW_REG_SET(addr, val) (*(volatile unsigned int *) (addr) = (val))
-#define HW_REG_SETB(addr, val) (*(volatile unsigned char *) (addr) = (val))
+#define HW_REG_SET(addr, val) (*(volatile unsigned int *) (addr) = (unsigned int) (val))
+#define HW_REG_SETB(addr, val) (*(volatile unsigned char *) (addr) = (unsigned char) (val))
 #define HW_REG_CLRBITS(addr, clr) (*(volatile unsigned int *) (addr) = (*(volatile unsigned int *) (addr)) & ~(clr))
 #define HW_REG_SETBITS(addr, set) (*(volatile unsigned int *) (addr) = (*(volatile unsigned int *) (addr)) | (set))
 #define HW_REG_MODBITS(addr, clr, set) (*(volatile unsigned int *) (addr) = ((*(unsigned int *) (addr) & ~(clr)) | (set)))
@@ -40,7 +40,7 @@
 
 #define RTC_BASE                0x44E3E000
 
-#define INTC                    0x48200000
+#define INTC_BASE               0x48200000
 
 void leds_init();
 void leds_set(int mask);
@@ -51,10 +51,6 @@ void uart_putf(const char *fmt, ...);
 
 void rtc_init();
 void rtc_irq();
-int rtc_getirq();
-int rtc_status();
-
-int intc_status();
 
 #endif
 

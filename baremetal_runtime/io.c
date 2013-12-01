@@ -27,16 +27,9 @@ void rtc_irq() {
         /* wait while rtc is updating */ ;
     /* interrupt every second */
     HW_REG_SET(RTC_BASE + 0x48, 0x4);
+    /* set interrupt mask for rtc */
+    HW_REG_SET(INTC_BASE + 0xC8, 0x1 << 11);
 }
-
-int rtc_getirq() {
-    return HW_REG_GET(RTC_BASE + 0x48);
-}
-
-int rtc_status() {
-    return HW_REG_GET(RTC_BASE + 0x44);
-}
-
 
 void uart_init() {
     /* set uart mux config */

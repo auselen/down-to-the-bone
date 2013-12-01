@@ -30,6 +30,30 @@ void handler_undefined_entry() {
     asm volatile("RFEFD sp!\n");
 }
 
+volatile int irq_count;
+//void handler_irq() __attribute__ ((noinline));
+void handler_irq() {
+    if ((HW_REG_GET(INTC_BASE + 0x40) & 0x7F) == 75)
+        irq_count++;
+    uart_putf("IRQ! %d", HW_REG_GET(INTC_BASE + 0x40) & 0x7F);
+}
+
+void handler_irq_entry() __attribute__ ((naked));
+void handler_irq_entry() {
+    asm volatile(
+        "STMFD SP!, {R0-R12, LR}\n"
+        "MRS R11, SPSR\n"
+        "BL handler_irq\n"
+        "LDR r0, =0x48200000\n" 
+        "LDR r1, =0x1\n"
+        "STR r1, [r0, #0x48]\n"
+        "DSB\n"
+        "MSR SPSR, R11\n"
+        "LDMFD SP!, {R0-R12, LR}\n"
+        "SUBS PC, LR, #4"
+    );
+}
+
 typedef struct {
     int reserved;
     void *desc;
@@ -45,6 +69,7 @@ const char *CRYSTAL_FREQS[] = {"19.2", "24", "25", "26"};
 void main(BootParams_t *bootcfg) {
     int val;
     int i = 0;
+    int sp;
     leds_init();
     timer_init();
     uart_init();
@@ -64,23 +89,22 @@ void main(BootParams_t *bootcfg) {
     uart_putf("bootcfg 0x%x\n desc  : 0x%x\n device: 0x%x\n reason: 0x%x\n", bootcfg,
         bootcfg->desc, bootcfg->device, bootcfg->reason);
     *bootcfg = Empty_params;
-    HW_REG_SET(0x4030CE24, (int) handler_undefined_entry);
-    asm volatile(".word 0xf000f0e7");
-    uart_putf("rtc irq %x\n", rtc_getirq());
-    uart_putf("rtc status %x\n", rtc_status());
+    HW_REG_SET(0x4030CE24, handler_undefined_entry);
+    HW_REG_SET(0x4030CE38, handler_irq_entry);
+    //asm volatile(".word 0xf000f0e7");
     rtc_irq();
-    uart_putf("rtc irq %x\n", rtc_getirq());
-    uart_putf("rtc status %x\n", rtc_status());
     while (1) {
         leds_set(1 << (i++ % 4));
         int sec = HW_REG_GET(RTC_BASE);
         int min = HW_REG_GET(RTC_BASE + 4);
         int hour = HW_REG_GET(RTC_BASE + 8);
+        asm volatile("mov %[sp], sp" : [sp] "=r" (sp));
         asm("MRS %[v], CPSR" : [v] "=r" (val));
-        uart_putf("\rtime %d%d:%d%d:%d%d cpsr:%x rtc_status:%x", (hour >> 4) & 0x3, hour & 0xF,
+        uart_putf("\rtime %d%d:%d%d:%d%d cpsr:%x irq_count:_%d_ %x",
+            (hour >> 4) & 0x3, hour & 0xF,
             (min >> 4) & 0x7, min & 0xF,
             (sec >> 4) & 0x7, sec & 0xF,
-            val, rtc_status());
+            val, irq_count, sp);
         sleep();
     }
 }

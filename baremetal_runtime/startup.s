@@ -1,12 +1,23 @@
-
+.equ STACK_SIZE, 256
 _start:
     /* setup stack pointer */
     ldr sp, =0x4030CDFC
-    sub r1, sp, #64
-    mov r2, #0x01b @undef
+    sub r1, sp, #STACK_SIZE
+
+    /* save svc */
     mrs r3, cpsr
+
+    mov r2, #0x1b @undef
     msr cpsr_cxsf, r2
     mov sp, r1
+    sub r1, sp, #STACK_SIZE
+
+    mov r2, #0x12 @irq
+    msr cpsr_cxsf, r2
+    mov sp, r1
+    sub r1, sp, #STACK_SIZE
+
+    /* return to svc */
     msr cpsr_cxsf, r3
 
     mov r3, r0

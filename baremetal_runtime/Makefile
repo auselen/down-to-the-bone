@@ -1,6 +1,6 @@
 CROSSCOMPILE ?= arm-linux-gnueabihf-
 
-CFLAGS = -mcpu=cortex-a8 -marm -Wall -O2 -nostdlib -nostartfiles -ffreestanding -fstack-usage -Wstack-usage=64
+CFLAGS = -mcpu=cortex-a8 -marm -Wall -O2 -nostdlib -nostartfiles -ffreestanding -fstack-usage -Wstack-usage=256
 
 all : runtime.bin
 
