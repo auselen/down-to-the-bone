@@ -15,52 +15,28 @@ void sleep() {
 }
 
 void handler_undefined() {
-    int val;
-    asm volatile("mov %[val], sp" : [val] "=r" (val));
-    uart_putf("sp %x\n", val);
-    asm("MRS %[v], CPSR" : [v] "=r" (val));
-    uart_putf("CPSR register %x\n", val);
     uart_putf("undefined instruction, skipping\n");
 }
 
 void handler_undefined_entry() __attribute__ ((naked));
 void handler_undefined_entry() {
-    asm volatile("SRSFD #0x1B!\n");
+    asm volatile("SRSFD sp!, #0x1B\n");
     handler_undefined();
     asm volatile("RFEFD sp!\n");
 }
 
 volatile int irq_count;
-//void handler_irq() __attribute__ ((noinline));
+volatile int hour, min, sec;
 void handler_irq() {
-    //HW_REG_SET(RTC_BASE + 0x48, 0x0);
-    //while (HW_REG_GET(RTC_BASE + 0x44) & 0x1) ;
-    //HW_REG_SET(RTC_BASE + 0x48, 0x1);
-    //HW_REG_SET(INTC_BASE + 0xD4, 0x1 << 11);
     int sir_irq = HW_REG_GET(INTC_BASE + 0x40);
-    //uart_putf("sir_irq %x\n", sir_irq);
     if (sir_irq & 0xFFFFFF80)
         return;
     if ((sir_irq & 0x7F) == 75) {
-        while (HW_REG_GET(RTC_BASE + 0x44) & 0x1) ;
-        //uart_putf("\n44 %x\n", HW_REG_GET(RTC_BASE + 0x44));
-        if ((HW_REG_GET(RTC_BASE + 0x44) & 0x4) == 0x4) {
-        //HW_REG_SET(INTC_BASE + 0xCC, 0x1 << 11);
-            irq_count++;
-        HW_REG_SET(INTC_BASE + 0xD0, 0x1 << 11);
-        }
-        //    ;
-        //HW_REG_CLRBITS(RTC_BASE + 0x48, 0x4);
-        //uart_putf("INT MASK %x", HW_REG_GET(INTC_BASE + 0xC0));
-        //HW_REG_SET(INTC_BASE + 0xD4, 0x1 << 11);
+        irq_count++;
+        sec = HW_REG_GET(RTC_BASE);
+        min = HW_REG_GET(RTC_BASE + 4);
+        hour = HW_REG_GET(RTC_BASE + 8);
     }
-    //uart_putf("\nrtc status %x", HW_REG_GET(RTC_BASE + 0x44));
-    //uart_putf(" rtc int %x", HW_REG_GET(RTC_BASE + 0x48));
-    //uart_putf("IRQ! %d", HW_REG_GET(INTC_BASE + 0x40) & 0x7F);
-    //rtc_irq();
-    //HW_REG_SET(RTC_BASE + 0x48, 0x4);
-    //HW_REG_SET(INTC_BASE + 0x48, 0x1);
-    //asm volatile("DSB");
 }
 
 void handler_irq_entry() __attribute__ ((naked));
@@ -98,35 +74,29 @@ void main(BootParams_t *bootcfg) {
     timer_init();
     uart_init();
     uart_putf("\n\nBooting...\n");
-    asm("MRC p15, 0, %[v], c0, c0, 0" : [v] "=r" (val));
+    asm volatile("MRC p15, 0, %[v], c0, c0, 0" : [v] "=r" (val));
     uart_putf("main id register %x\n", val);
-    asm("MRS %[v], CPSR" : [v] "=r" (val));
-    uart_putf("CPSR register %x\n", val);
-    val &= ~0x80;
-    asm("MSR CPSR, %[v]" : : [v] "r" (val));
+    asm volatile("CPSIE i");
+    asm volatile("MRS %[v], CPSR" : : [v] "r" (val));
     uart_putf("CPSR register %x\n", val);
     uart_putf("rom code version 0x%x\n", HW_REG_GET(ROM_CODE_VERSION));
     uart_putf("control_status 0x%x\n", HW_REG_GET(CONTROL_STATUS));
     uart_putf("crystal freq %s MHz\n", CRYSTAL_FREQS[(HW_REG_GET(CONTROL_STATUS) >> 22) & 0x3]);
-    uart_putf("lr 0x%x\n", *bootcfg);
     uart_putf("bootcfg 0x%x\n desc  : 0x%x\n device: 0x%x\n reason: 0x%x\n", bootcfg,
         bootcfg->desc, bootcfg->device, bootcfg->reason);
     *bootcfg = Empty_params;
     HW_REG_SET(0x4030CE24, handler_undefined_entry);
     HW_REG_SET(0x4030CE38, handler_irq_entry);
-    //asm volatile(".word 0xf000f0e7");
+    asm volatile(".word 0xe7f000f0");
     rtc_init();
     rtc_irq();
     while (1) {
         leds_set(1 << (i++ % 4));
-        int sec = HW_REG_GET(RTC_BASE);
-        int min = HW_REG_GET(RTC_BASE + 4);
-        int hour = HW_REG_GET(RTC_BASE + 8);
         uart_putf("\rtime %d%d:%d%d:%d%d irq_count:_%d_ i:%d",
             (hour >> 4) & 0x3, hour & 0xF,
             (min >> 4) & 0x7, min & 0xF,
             (sec >> 4) & 0x7, sec & 0xF,
             irq_count, i);
-        //sleep();
+        sleep();
     }
 }
