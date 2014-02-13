@@ -114,6 +114,7 @@ void uart_putf(const char *fmt, ...) {
                     }
                     break;
                 }
+                case 'i':
                 case 'd': {
                     int num = *stack_head++;
                     char buf[16];
