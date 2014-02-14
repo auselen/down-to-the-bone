@@ -89,6 +89,9 @@ typedef struct {
 
 BootParams_t Empty_params;
 
+void config_ddr_x(void);
+
+
 const char *CRYSTAL_FREQS[] = {"19.2", "24", "25", "26"};
 
 void main(BootParams_t *bootcfg) {
@@ -115,6 +118,66 @@ void main(BootParams_t *bootcfg) {
     HW_REG_SET(0x4030CE24, handler_undefined_entry);
     HW_REG_SET(0x4030CE38, handler_irq_entry);
     //asm volatile(".word 0xf000f0e7");
+    
+    
+    /*
+    	config_ddr_x is 'semi-hardcoded' version of u-boot DDR3L init
+    	
+    	Currently, this does not seem to work properly if binary
+    	is downloaded 1st time via XMODEM, assuming BBB is cold-started
+    	into DL mode with boot-button pressed.
+    	However, if binary is downloaded 2nd time, assuming BBB is set
+    	to DL mode just via reset-button, it will work...
+    */
+    uart_putf("config_ddr_x enter...\n");
+    config_ddr_x();
+    uart_putf("config_ddr_x exit\n");
+    
+    {
+	    #include <stdint.h>
+	    uint32_t	*p = (uint32_t*)0x80000000;
+	  	uint32_t	*endp = (uint32_t*)(0x80000000+512*1024*1024);
+//	  	uint32_t	*endp = (uint32_t*)(0x80000000+64*1024*1024);
+	  	int			i=0;
+	  	
+	  	uart_putf("start DDR3 ram test, from 0x%x to 0x%x\n",p,endp);
+	  	
+	  	uart_putf("    writing...\n");
+	  	while ( p < endp )
+	  	{
+		  	*p = (uint32_t)i;
+		  	p++;
+		  	i++;
+	  	}
+	  	
+	  	i=0;
+	  	p = (uint32_t*)0x80000000;
+
+	  	uart_putf("    checking...\n");
+	  	while ( p < endp )
+	  	{
+		  	if ( *p != (uint32_t)i )
+		  	{
+			  	uart_putf("mem check error\n");
+			  	uart_putf("    address : 0x%x\n",p);
+			  	uart_putf("    expected: 0x%x\n",i);
+			  	uart_putf("    actual  : 0x%x\n",*p);
+		  		p = endp + 8;
+	  		}
+		  	else
+		  	{
+		  		p++;
+		  		i++;
+  			}
+	  	}
+	  	
+	  	if ( p != (endp + 8) )
+	  		uart_putf("DDR3 ram test OK\n");
+	  	else
+	  		uart_putf("DDR3 ram test FAIL\n");
+    }
+
+    
     rtc_init();
     rtc_irq();
     while (1) {
